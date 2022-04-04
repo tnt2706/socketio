@@ -1,0 +1,24 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "socketio server",
+  "main": "index.js",
+  "scripts": {
+    "start": "NODE_ENV=dev nodemon app",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tnt2706/socketio.git"
+  },
+  "author": "tran tinh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tnt2706/socketio/issues"
+  },
+  "homepage": "https://github.com/tnt2706/socketio#readme",
+  "dependencies": {
+    "express": "^4.17.3",
+    "socket.io": "^4.4.1"
+  }
+}

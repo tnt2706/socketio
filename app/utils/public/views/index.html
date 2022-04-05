@@ -16,8 +16,13 @@
     </header>
     <content>
       <div class="container mt-5">
-        <button id="btn-join" type="button" class="btn btn-primary">Join room</button>
-        <button id="btn-leave" type="button" class="btn btn-warning">Leave room</button>
+        <div class="mt-2">
+          <p class="text-uppercase" id="txt-watch">0</p>
+        </div>
+        <div class="mt-5">
+          <button id="btn-join" type="button" class="btn btn-primary">Join room</button>
+          <button id="btn-leave" type="button" class="btn btn-warning">Leave room</button>
+        </div>
       </div>
     </content>
 
@@ -29,8 +34,22 @@
     </script>
     <script>
       $( document ).ready(function() {
+        let dateWatch = 0;
+        const currentDate = new Date()
         $("#btn-join").click(function(){
-          socket.emit('join', 'userId_0123456789');
+          const data = JSON.stringify({
+            room: 'userId_12345',
+            date: new Date()
+          })
+          socket.emit('join-timesheet',data);
+        });
+
+        $("#btn-leave").click(function(){
+          const data = JSON.stringify({
+            room: 'userId_12345',
+            date: new Date()
+          })
+          socket.emit('leave-timesheet',data);
         });
       });
     </script>

@@ -1,6 +1,7 @@
 require('./global');
 const http = require('http');
 const socketServer = require('socket.io');
+const redisAdapter = require('socket.io-redis');
 const app = require('./app');
 const config = require('./config');
 
@@ -10,8 +11,10 @@ server.listen(config.socketioPort, '0.0.0.0', () => {
   logger.info(`🚀 Running on port http://localhost:${config.socketioPort}`);
 });
 
+const adapter = redisAdapter({ ...config.redisDbs.socketioDb, key: 'cardiac-socket.io-server' });
 const io = socketServer(server, { pingTimeout: 10000 });
 global.io = io;
+io.adapter(adapter);
 
 require('./socketio');
 

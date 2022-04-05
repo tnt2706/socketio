@@ -1,8 +1,8 @@
 require('./global');
-const app = require('./app');
-const config = require('./config');
 const http = require('http');
 const socketServer = require('socket.io');
+const app = require('./app');
+const config = require('./config');
 
 const server = http.createServer(app);
 
@@ -13,13 +13,13 @@ server.listen(config.socketioPort, '0.0.0.0', () => {
 const io = socketServer(server, { pingTimeout: 10000 });
 global.io = io;
 
-require('./socketio')
+require('./socketio');
 
-process.on('uncaughtException', (exception) => {
+process.on('uncaughtException', exception => {
   logger.warn(exception);
 });
 
-process.on('unhandledRejection', (reason) => {
+process.on('unhandledRejection', reason => {
   logger.warn(reason.stack || reason);
 });
 
@@ -34,14 +34,12 @@ process.on('SIGTERM', () => {
 });
 
 function shutdown() {
-  server.close().then(()=>{
+  server.close().then(() => {
     stopSocketioServer().then(() => {
       process.exit();
     });
-  })
-
+  });
 }
-
 
 function stopSocketioServer() {
   return new Promise((resolve, reject) => {

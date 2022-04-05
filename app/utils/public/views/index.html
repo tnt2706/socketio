@@ -27,6 +27,12 @@
     <script>
       const socket = io('http://localhost:8080');
     </script>
-    <script  type="text/javascript" src="../javascript/socketio.js"></script>
+    <script>
+      $( document ).ready(function() {
+        $("#btn-join").click(function(){
+          socket.emit('join', 'userId_0123456789');
+        });
+      });
+    </script>
   </body>
 </html>

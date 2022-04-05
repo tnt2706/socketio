@@ -1,5 +1,5 @@
 // logger
-const logger = require('./app/utils/logger');
+const logger = require('./utils/logger');
 
 global.logger = logger;
 

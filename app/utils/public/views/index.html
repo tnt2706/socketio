@@ -20,8 +20,10 @@
           <p class="text-uppercase" id="txt-watch">0</p>
         </div>
         <div class="mt-5">
-          <button id="btn-join" type="button" class="btn btn-primary">Join room</button>
-          <button id="btn-leave" type="button" class="btn btn-warning">Leave room</button>
+          <button id="btn-join" type="button" class="btn btn-primary">Start</button>
+          <button id="btn-pause" type="button" class="btn btn-danger">Pause</button>
+          <button id="btn-skip-start" type="button" class="btn btn-info">Skip Start</button>
+          <button id="btn-leave" type="button" class="btn btn-warning">Log</button>
         </div>
       </div>
     </content>
@@ -36,21 +38,59 @@
       $( document ).ready(function() {
         let dateWatch = 0;
         const currentDate = new Date()
+
+        $("#btn-pause").prop('disabled', true)
+        $("#btn-skip-start").prop('disabled', true)
+
         $("#btn-join").click(function(){
           const data = JSON.stringify({
             room: 'userId_12345',
-            date: new Date()
+            date: new Date(),
+            status: 'join'
           })
           socket.emit('join-timesheet',data);
+          $("#btn-pause").prop('disabled', false)
+          $("#btn-skip-start").prop('disabled', true)
+          $("#btn-join").prop('disabled', true)
+          $("#btn-log").prop('disabled', true)
+        });
+
+        $("#btn-pause").click(function(){
+          const data = JSON.stringify({
+            room: 'userId_12345',
+            date: new Date(),
+            status: 'pause'
+          })
+          socket.emit('pause-timesheet',data);
+          $("#btn-join").prop('disabled', true)
+          $("#btn-skip-start").prop('disabled', false)
+          $("#btn-pause").prop('disabled', true)
+        });
+
+        $("#btn-skip-start").click(function(){
+          const data = JSON.stringify({
+            room: 'userId_12345',
+            date: new Date(),
+            status: 'skip-start'
+          })
+          socket.emit('start-timesheet',data);
+          $("#btn-join").prop('disabled', true)
+          $("#btn-skip-start").prop('disabled', true)
+          $("#btn-pause").prop('disabled', false)
         });
 
         $("#btn-leave").click(function(){
           const data = JSON.stringify({
             room: 'userId_12345',
-            date: new Date()
+            date: new Date(),
+            status: 'leave'
           })
           socket.emit('leave-timesheet',data);
+          $("#btn-join").prop('disabled', false)
+          $("#btn-pause").prop('disabled', true)
+          $("#btn-skip-start").prop('disabled', true)
         });
+
       });
     </script>
   </body>

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <title>Socket client</title>
+  </head>
+  <body>
+    <header>
+      <nav class="navbar navbar-dark bg-primary">
+        <div class="container">
+          <span class="navbar-brand mb-0 h1">Socket</span>
+        </div>
+      </nav>
+    </header>
+    <content>
+      <div class="container mt-5">
+        <div class="mt-2">
+          <p class="text-uppercase" id="txt-watch">0</p>
+        </div>
+
+        <div class="mt-5">
+          <button id="btn-hello" type="button" class="btn btn-primary">Hello</button>
+        </div>
+        <div class="mt-5">
+          <button id="btn-join" type="button" class="btn btn-primary">Start</button>
+          <button id="btn-pause" type="button" class="btn btn-danger">Pause</button>
+          <button id="btn-skip-start" type="button" class="btn btn-info">Skip Start</button>
+          <button id="btn-leave" type="button" class="btn btn-warning">Log</button>
+        </div>
+      </div>
+    </content>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io('http://localhost:3001',{ transports : ['websocket'] });
+    </script>
+    <script>
+      $( document ).ready(function() {
+        let dateWatch = 0;
+        const currentDate = new Date()
+
+        $("#btn-pause").prop('disabled', true)
+        $("#btn-skip-start").prop('disabled', true)
+
+
+        $("#btn-hello").click(function(){
+
+          socket.emit('hello','11111');
+        });
+
+        $("#btn-join").click(function(){
+          const data = JSON.stringify({
+            type:'timesheet',
+            date: new Date(),
+            status: 'join'
+          })
+          socket.emit('join-timer',data);
+          $("#btn-pause").prop('disabled', false)
+          $("#btn-skip-start").prop('disabled', true)
+          $("#btn-join").prop('disabled', true)
+          $("#btn-log").prop('disabled', true)
+        });
+
+        $("#btn-pause").click(function(){
+          const data = JSON.stringify({
+            type:'timesheet',
+            date: new Date(),
+            status: 'pause'
+          })
+          socket.emit('pause-timer',data);
+          $("#btn-join").prop('disabled', true)
+          $("#btn-skip-start").prop('disabled', false)
+          $("#btn-pause").prop('disabled', true)
+        });
+
+        $("#btn-skip-start").click(function(){
+          const data = JSON.stringify({
+            type:'timesheet',
+            date: new Date(),
+            status: 'continue'
+          })
+          socket.emit('continue-timer',data);
+          $("#btn-join").prop('disabled', true)
+          $("#btn-skip-start").prop('disabled', true)
+          $("#btn-pause").prop('disabled', false)
+        });
+
+        $("#btn-leave").click(function(){
+          const data = JSON.stringify({
+            type:'timesheet',
+            date: new Date(),
+            status: 'leave'
+          })
+          socket.emit('leave-timer',data);
+          $("#btn-join").prop('disabled', false)
+          $("#btn-pause").prop('disabled', true)
+          $("#btn-skip-start").prop('disabled', true)
+        });
+
+      });
+    </script>
+  </body>
+</html>

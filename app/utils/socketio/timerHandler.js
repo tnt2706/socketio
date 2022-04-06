@@ -1,64 +1,117 @@
+const { CONSTANCE: { SOCKETIO_EVENT: { TIMER } } } = require('../../config');
 const { authenticateStore: redis } = require('../redis/stores');
 
 module.exports = socket => {
-  logger.info(`client connected : ${socket.id}`);
-  socket.join('BiocareCardiac');
-
-  socket.on('join-timesheet', async data => {
-    const { room, date: startDate, status } = JSON.parse(data);
-    if (room) {
+  socket.on('join-timer', async data => {
+    const { type, date, status } = data;
+    if (!socket.isVerified) {
+      socket.disconnect(true);
+      return;
+    }
+    if (type && date) {
+      const room = `${type}:${socket.userId}`;
       socket.join(room);
+      logger.info('socket.on join - room', room);
       const clientsRoom = [...io.sockets.adapter.rooms.get(room)];
-      if (startDate && clientsRoom.length === 1) {
-        const dataTimer = { startDate, duration: 0, status };
-        await redis.setAsync(`timesheet:${room}`, JSON.stringify(dataTimer));
+      const dataTimer = await redis.getAsync(room);
+
+      const dataTimerUpdate = { date, duration: 0, status };
+      if (clientsRoom.length === 1 && !dataTimer) {
+        await redis.setAsync(room, JSON.stringify(dataTimerUpdate));
+      }
+      if (dataTimer) {
+        const { date: startDateTimer, status: oldStatus } = JSON.parse(dataTimer);
+        const dateConnectAgain = new Date(date);
+        const startDate = new Date(startDateTimer);
+        const duration = ((+dateConnectAgain - +startDate) / 1000).toFixed(0);
+        io.to(room).emit(TIMER.RECONNECT, { type, duration, status: oldStatus });
       }
     }
   });
 
-  socket.on('pause-timesheet', async data => {
-    const { room, date, status } = JSON.parse(data);
-    if (room && date) {
-      const { duration: durationOld, startDate: currentStartDate } = JSON.parse(await redis.getAsync(`timesheet:${room}`));
-      const stopDate = new Date(date);
+  socket.on('pause-timer', async data => {
+    if (!socket.isVerified) {
+      socket.disconnect(true);
+      return;
+    }
+
+    const { type, date, status } = data;
+    const room = `${type}:${socket.userId}`;
+
+    if (!socket.rooms.has(room)) return;
+
+    if (type && date) {
+      const dataTimer = await redis.getAsync(room);
+      if (!dataTimer) return;
+
+      const { duration, date: currentStartDate } = JSON.parse(dataTimer);
       const startDate = new Date(currentStartDate);
-      const duration = Math.round((+stopDate - +startDate) / 1000) + parseInt(durationOld, 10);
-      const dataTimer = { startDate: date, duration, status };
-      await redis.setAsync(`timesheet:${room}`, JSON.stringify(dataTimer));
-      io.to(room).emit(`timesheet::${room}`, duration);
+      const stopDate = new Date(date);
+      const newDuration = (+stopDate - +startDate) + duration;
+      const dataTimerUpdate = { date, duration: newDuration, status };
+      await redis.setAsync(room, JSON.stringify(dataTimerUpdate));
+      io.to(room).emit(TIMER.PAUSE, { ...dataTimerUpdate, type, duration: (newDuration / 1000).toFixed(0) });
     }
   });
 
-  socket.on('start-timesheet', async data => {
-    const { room, date, status } = JSON.parse(data);
-    if (room && date) {
-      const { duration } = JSON.parse(await redis.getAsync(`timesheet:${room}`));
-      const dataTimer = { startDate: date, duration, status };
-      await redis.setAsync(`timesheet:${room}`, JSON.stringify(dataTimer));
-      io.to(room).emit(`timesheet::${room}`, duration);
+  socket.on('continue-timer', async data => {
+    if (!socket.isVerified) {
+      socket.disconnect(true);
+      return;
+    }
+
+    const { type, date, status } = data;
+    const room = `${type}:${socket.userId}`;
+
+    if (!socket.rooms.has(room)) return;
+
+    const dataTimer = await redis.getAsync(room);
+    if (!dataTimer) return;
+
+    const { duration, status: oldStatus } = JSON.parse(dataTimer);
+
+    if (type && date && oldStatus === 'pause') {
+      const dataTimerUpdate = { date, duration, status };
+      await redis.setAsync(room, JSON.stringify(dataTimerUpdate));
+      io.to(room).emit(TIMER.CONTINUE, { ...dataTimerUpdate, type, duration: (duration / 1000).toFixed(0) });
     }
   });
 
-  socket.on('leave-timesheet', async data => {
-    const { room, date } = JSON.parse(data);
+  socket.on('leave-timer', async data => {
+    if (!socket.isVerified) {
+      socket.disconnect(true);
+      return;
+    }
+
+    const { type, date, status } = data;
+    const room = `${type}:${socket.userId}`;
+
+    if (!socket.rooms.has(room)) return;
+
     if (date) {
-      const { duration: durationOld, startDate: currentStartDate, status } = JSON.parse(await redis.getAsync(`timesheet:${room}`));
-      const stopDate = new Date(date);
+      const dataTimer = await redis.getAsync(room);
+      if (!dataTimer) return;
+
+      const { duration, date: currentStartDate, status: oldStatus } = JSON.parse(dataTimer);
       const startDate = new Date(currentStartDate);
-      let duration = 0;
-      if (status === 'pause') {
-        duration = parseInt(durationOld, 10);
+      const stopDate = new Date(date);
+      let newDuration = 0;
+
+      if (oldStatus === 'pause') {
+        newDuration = (duration / 1000).toFixed(0);
       } else {
-        duration = Math.round((+stopDate - +startDate) / 1000) + parseInt(durationOld, 10);
+        newDuration = (((+stopDate - +startDate) + duration) / 1000).toFixed(0);
       }
 
-      io.to(room).emit(`timesheet-log:${room}`, duration);
-      await redis.delAsync(`timesheet:${room}`);
+      io.to(room).emit(TIMER.LEAVE, { duration: newDuration, type, status });
+      await redis.delAsync(room);
+
+      logger.info(`duration of the ${socket.userId} with ${room} : `, `${newDuration}(s)`);
     }
     socket.leave(room);
   });
 
   socket.on('disconnect', () => {
-    logger.info(`client disconnect : ${socket.id}`);
+    logger.info(`socket.io: a client disconnect ${socket.id}`);
   });
 };

@@ -43,12 +43,9 @@
         $("#btn-skip-start").prop('disabled', true)
 
         $("#btn-join").click(function(){
-          const data = JSON.stringify({
-            room: 'userId_12345',
-            date: new Date(),
-            status: 'join'
-          })
-          socket.emit('join-timesheet',data);
+          const data = {type:'timesheet',date: new Date(),status: 'join'}
+
+          socket.emit('join-timer',data);
           $("#btn-pause").prop('disabled', false)
           $("#btn-skip-start").prop('disabled', true)
           $("#btn-join").prop('disabled', true)
@@ -56,36 +53,26 @@
         });
 
         $("#btn-pause").click(function(){
-          const data = JSON.stringify({
-            room: 'userId_12345',
-            date: new Date(),
-            status: 'pause'
-          })
-          socket.emit('pause-timesheet',data);
+          const data ={ type:'timesheet',date: new Date(),status: 'pause' }
+
+          socket.emit('pause-timer',data);
           $("#btn-join").prop('disabled', true)
           $("#btn-skip-start").prop('disabled', false)
           $("#btn-pause").prop('disabled', true)
         });
 
         $("#btn-skip-start").click(function(){
-          const data = JSON.stringify({
-            room: 'userId_12345',
-            date: new Date(),
-            status: 'skip-start'
-          })
-          socket.emit('start-timesheet',data);
+          const data = {type:'timesheet',date: new Date(),status: 'continue'}
+
+          socket.emit('continue-timer',data);
           $("#btn-join").prop('disabled', true)
           $("#btn-skip-start").prop('disabled', true)
           $("#btn-pause").prop('disabled', false)
         });
 
         $("#btn-leave").click(function(){
-          const data = JSON.stringify({
-            room: 'userId_12345',
-            date: new Date(),
-            status: 'leave'
-          })
-          socket.emit('leave-timesheet',data);
+          const data = { type:'timesheet', date: new Date(), status: 'leave'}
+          socket.emit('leave-timer',data);
           $("#btn-join").prop('disabled', false)
           $("#btn-pause").prop('disabled', true)
           $("#btn-skip-start").prop('disabled', true)

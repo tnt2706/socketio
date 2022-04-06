@@ -13,18 +13,16 @@ module.exports = socket => {
       socket.join(room);
       logger.info('socket.on join - room', room);
       const clientsRoom = [...io.sockets.adapter.rooms.get(room)];
-      const dataTimer = await redis.getAsync(room);
+      const timer = await redis.getAsync(room);
 
       const dataTimerUpdate = { date, duration: 0, status };
-      if (clientsRoom.length === 1 && !dataTimer) {
+      if (clientsRoom.length === 1 && !timer) {
         await redis.setAsync(room, JSON.stringify(dataTimerUpdate));
       }
-      if (dataTimer) {
-        const { date: startDateTimer, status: oldStatus } = JSON.parse(dataTimer);
-        const dateConnectAgain = new Date(date);
-        const startDate = new Date(startDateTimer);
-        const duration = ((+dateConnectAgain - +startDate) / 1000).toFixed(0);
-        io.to(room).emit(TIMER.RECONNECT, { type, duration, status: oldStatus });
+      if (timer) {
+        const { date: startDate, status: oldStatus } = JSON.parse(timer);
+        const duration = +(new Date(date)) - +(new Date(startDate));
+        io.to(room).emit(TIMER.RECONNECT, { type, duration: (duration/1000).toFixed(0), status: oldStatus });
       }
     }
   });
@@ -41,13 +39,11 @@ module.exports = socket => {
     if (!socket.rooms.has(room)) return;
 
     if (type && date) {
-      const dataTimer = await redis.getAsync(room);
-      if (!dataTimer) return;
+      const timer = await redis.getAsync(room);
+      if (!timer) return;
 
-      const { duration, date: currentStartDate } = JSON.parse(dataTimer);
-      const startDate = new Date(currentStartDate);
-      const stopDate = new Date(date);
-      const newDuration = (+stopDate - +startDate) + duration;
+      const { duration, date: startDate } = JSON.parse(timer);
+      const newDuration = +(new Date(date)) - +(new Date(startDate)) + duration;
       const dataTimerUpdate = { date, duration: newDuration, status };
       await redis.setAsync(room, JSON.stringify(dataTimerUpdate));
       io.to(room).emit(TIMER.PAUSE, { ...dataTimerUpdate, type, duration: (newDuration / 1000).toFixed(0) });
@@ -65,10 +61,10 @@ module.exports = socket => {
 
     if (!socket.rooms.has(room)) return;
 
-    const dataTimer = await redis.getAsync(room);
-    if (!dataTimer) return;
+    const timer = await redis.getAsync(room);
+    if (!timer) return;
 
-    const { duration, status: oldStatus } = JSON.parse(dataTimer);
+    const { duration, status: oldStatus } = JSON.parse(timer);
 
     if (type && date && oldStatus === 'pause') {
       const dataTimerUpdate = { date, duration, status };
@@ -89,24 +85,16 @@ module.exports = socket => {
     if (!socket.rooms.has(room)) return;
 
     if (date) {
-      const dataTimer = await redis.getAsync(room);
-      if (!dataTimer) return;
+      const timer = await redis.getAsync(room);
+      if (!timer) return;
 
-      const { duration, date: currentStartDate, status: oldStatus } = JSON.parse(dataTimer);
-      const startDate = new Date(currentStartDate);
-      const stopDate = new Date(date);
-      let newDuration = 0;
+      const { duration, date: startDate, status: oldStatus } = JSON.parse(timer);
+      const newDuration = oldStatus ==='pause'? duration :   +(new Date(date)) - +(new Date(startDate)) + duration
 
-      if (oldStatus === 'pause') {
-        newDuration = (duration / 1000).toFixed(0);
-      } else {
-        newDuration = (((+stopDate - +startDate) + duration) / 1000).toFixed(0);
-      }
-
-      io.to(room).emit(TIMER.LEAVE, { duration: newDuration, type, status });
+      io.to(room).emit(TIMER.LEAVE, { duration: (newDuration / 1000).toFixed(0), type, status });
       await redis.delAsync(room);
 
-      logger.info(`duration of the ${socket.userId} with ${room} : `, `${newDuration}(s)`);
+      logger.info(`duration of the ${socket.userId} with ${room} : `, `${newDuration}(ms)`);
     }
     socket.leave(room);
   });
